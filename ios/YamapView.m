@@ -154,39 +154,4 @@ RCT_EXPORT_METHOD(getVisibleRegion:(nonnull NSNumber*) reactTag _id:(NSString*_N
     }];
 }
 
-RCT_EXPORT_METHOD(getVisibleRegion:(nonnull NSNumber*) reactTag _id:(NSString*_Nonnull) _id ) {
-    [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
-        RNYMView *view = (RNYMView*) viewRegistry[reactTag];
-        if (!view || ![view isKindOfClass:[RNYMView class]]) {
-            RCTLogError(@"Cannot find NativeView with tag #%@", reactTag);
-            return;
-        }
-        [view emitVisibleRegionToJS:_id];
-    }];
-}
-
-
-RCT_EXPORT_METHOD(getVisibleRegion:(nonnull NSNumber*) reactTag _id:(NSString*_Nonnull) _id ) {
-    [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
-        RNYMView *view = (RNYMView*) viewRegistry[reactTag];
-        if (!view || ![view isKindOfClass:[RNYMView class]]) {
-            RCTLogError(@"Cannot find NativeView with tag #%@", reactTag);
-            return;
-        }
-        [view emitVisibleRegionToJS:_id];
-    }];
-}
-
-
-RCT_EXPORT_METHOD(getVisibleRegion:(nonnull NSNumber*) reactTag _id:(NSString*_Nonnull) _id ) {
-    [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *,UIView *> *viewRegistry) {
-        RNYMView *view = (RNYMView*) viewRegistry[reactTag];
-        if (!view || ![view isKindOfClass:[RNYMView class]]) {
-            RCTLogError(@"Cannot find NativeView with tag #%@", reactTag);
-            return;
-        }
-        [view emitVisibleRegionToJS:_id];
-    }];
-}
-
 @end
