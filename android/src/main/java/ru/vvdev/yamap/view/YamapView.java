@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.view.View;
+import android.util.AttributeSet;
 
 import androidx.annotation.NonNull;
 
@@ -31,6 +32,7 @@ import com.yandex.mapkit.layers.ObjectEvent;
 import com.yandex.mapkit.map.CameraListener;
 import com.yandex.mapkit.map.CameraPosition;
 import com.yandex.mapkit.map.CameraUpdateSource;
+import com.yandex.mapkit.map.VisibleRegion;
 import com.yandex.mapkit.map.CircleMapObject;
 import com.yandex.mapkit.map.InputListener;
 import com.yandex.mapkit.map.PlacemarkMapObject;
@@ -98,6 +100,19 @@ public class YamapView extends MapView implements UserLocationObjectListener, Ca
 
     public YamapView(Context context) {
         super(context);
+        init(context);
+    }
+
+    public YamapView(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public YamapView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+        init(context);
+    }
+
+    private void init(Context context) {
         DirectionsFactory.initialize(context);
         drivingRouter = DirectionsFactory.getInstance().createDrivingRouter();
         getMap().addCameraListener(this);
@@ -114,7 +129,7 @@ public class YamapView extends MapView implements UserLocationObjectListener, Ca
         }
     }
 
-    private WritableMap positionToJSON(CameraPosition position) {
+    private WritableMap positionToJSON(CameraPosition position, boolean finished) {
         WritableMap cameraPosition = Arguments.createMap();
         Point point = position.getTarget();
         cameraPosition.putDouble("azimuth", position.getAzimuth());
@@ -124,16 +139,50 @@ public class YamapView extends MapView implements UserLocationObjectListener, Ca
         target.putDouble("lat", point.getLatitude());
         target.putDouble("lon", point.getLongitude());
         cameraPosition.putMap("point", target);
+        cameraPosition.putBoolean("isFinished", finished);
         return cameraPosition;
     }
 
+    private WritableMap regionToJSON(VisibleRegion region) {
+      Point pointTopLeft = region.getTopLeft();
+      Point pointTopRight = region.getTopRight();
+      Point pointBottomLeft = region.getBottomLeft();
+      Point pointBottomRight = region.getBottomRight();
+      WritableMap visibleRegion = Arguments.createMap();
+      WritableMap topLeft = Arguments.createMap();
+      WritableMap topRight = Arguments.createMap();
+      WritableMap bottomLeft = Arguments.createMap();
+      WritableMap bottomRight = Arguments.createMap();
+      topLeft.putDouble("lat", pointTopLeft.getLatitude());
+      topLeft.putDouble("lon", pointTopLeft.getLongitude());
+      topRight.putDouble("lat", pointTopRight.getLatitude());
+      topRight.putDouble("lon", pointTopRight.getLongitude());
+      bottomLeft.putDouble("lat", pointBottomLeft.getLatitude());
+      bottomLeft.putDouble("lon", pointBottomLeft.getLongitude());
+      bottomRight.putDouble("lat", pointBottomRight.getLatitude());
+      bottomRight.putDouble("lon", pointBottomRight.getLongitude());
+      visibleRegion.putMap("topLeft", topLeft);
+      visibleRegion.putMap("topRight", topRight);
+      visibleRegion.putMap("bottomLeft", bottomLeft);
+      visibleRegion.putMap("bottomRight", bottomRight);
+      return visibleRegion;
+  }
+
     public void emitCameraPositionToJS(String id) {
         CameraPosition position = getMap().getCameraPosition();
-        WritableMap cameraPosition = positionToJSON(position);
+        WritableMap cameraPosition = positionToJSON(position, true);
         cameraPosition.putString("id", id);
         ReactContext reactContext = (ReactContext) getContext();
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(getId(), "cameraPosition", cameraPosition);
     }
+
+    public void emitVisibleRegionToJS(String id) {
+      VisibleRegion region = getMap().getVisibleRegion();
+      WritableMap visibleRegion = regionToJSON(region);
+      visibleRegion.putString("id", id);
+      ReactContext reactContext = (ReactContext) getContext();
+      reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(getId(), "visibleRegion", visibleRegion);
+  }
 
     public void setZoom(Float zoom, float duration, int animation) {
         CameraPosition prevPosition = getMap().getCameraPosition();
@@ -514,8 +563,8 @@ public class YamapView extends MapView implements UserLocationObjectListener, Ca
     }
 
     @Override
-    public void onCameraPositionChanged(@NonNull com.yandex.mapkit.map.Map map, @NonNull CameraPosition cameraPosition, @NonNull CameraUpdateSource cameraUpdateSource, boolean b) {
-        WritableMap position = positionToJSON(cameraPosition);
+    public void onCameraPositionChanged(@NonNull com.yandex.mapkit.map.Map map, @NonNull CameraPosition cameraPosition, @NonNull CameraUpdateSource cameraUpdateSource, boolean finished) {
+        WritableMap position = positionToJSON(cameraPosition, finished);
         ReactContext reactContext = (ReactContext) getContext();
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(getId(), "cameraPositionChanged", position);
     }
