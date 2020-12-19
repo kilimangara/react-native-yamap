@@ -1,11 +1,13 @@
 #import <React/RCTComponent.h>
 #import <React/UIView+React.h>
+#import <React/RCTConvert.h>
 
 #import <MapKit/MapKit.h>
 #import <YandexMapKit/YMKMapKitFactory.h>
 #import <YandexMapKit/YMKMapView.h>
 #import <YandexMapKit/YMKBoundingBox.h>
 #import <YandexMapKit/YMKCameraPosition.h>
+#import <YandexMapKit/YMKVisibleRegion.h>
 #import <YandexMapKit/YMKCircle.h>
 #import <YandexMapKit/YMKPolyline.h>
 #import <YandexMapKit/YMKPolylineMapObject.h>
@@ -282,8 +284,7 @@
     UIImage *icon;
     if ([uri rangeOfString:@"http://"].location == NSNotFound && [uri rangeOfString:@"https://"].location == NSNotFound) {
         if ([uri rangeOfString:@"file://"].location != NSNotFound){
-            NSString *file = [uri substringFromIndex:8];
-            icon = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL fileURLWithPath:file]]];
+            icon = icon = [RCTConvert UIImage:uri];
         } else {
             icon = [UIImage imageNamed:uri];
         }
@@ -318,11 +319,12 @@
     [self setCenter:position withDuration:duration withAnimation:animation];
 }
 
--(NSDictionary*) cameraPositionToJSON:(YMKCameraPosition*) position {
+-(NSDictionary*) cameraPositionToJSON:(YMKCameraPosition*) position finished:(BOOL) finished  {
     return @{
         @"azimuth": [NSNumber numberWithFloat:position.azimuth],
         @"tilt": [NSNumber numberWithFloat:position.tilt],
         @"zoom": [NSNumber numberWithFloat:position.zoom],
+        @"isFinished": [NSNumber numberWithBool:finished],
         @"point": @{
                 @"lat": [NSNumber numberWithDouble:position.target.latitude],
                 @"lon": [NSNumber numberWithDouble:position.target.longitude],
@@ -330,9 +332,30 @@
     };
 }
 
+-(NSDictionary*) regionToJSON:(YMKVisibleRegion*) region {
+    return @{
+        @"topLeft": @{
+                @"lat": [NSNumber numberWithDouble:region.topLeft.latitude],
+                @"lon": [NSNumber numberWithDouble:region.topLeft.longitude],
+        },
+        @"topRight": @{
+                @"lat": [NSNumber numberWithDouble:region.topRight.latitude],
+                @"lon": [NSNumber numberWithDouble:region.topRight.longitude],
+        },
+        @"bottomLeft": @{
+                @"lat": [NSNumber numberWithDouble:region.bottomLeft.latitude],
+                @"lon": [NSNumber numberWithDouble:region.bottomLeft.longitude],
+        },
+        @"bottomRight": @{
+                @"lat": [NSNumber numberWithDouble:region.bottomRight.latitude],
+                @"lon": [NSNumber numberWithDouble:region.bottomRight.longitude],
+        }
+    };
+}
+
 -(void) emitCameraPositionToJS:(NSString*) _id {
     YMKCameraPosition* position = self.mapWindow.map.cameraPosition;
-    NSDictionary* cameraPosition = [self cameraPositionToJSON:position];
+    NSDictionary* cameraPosition = [self cameraPositionToJSON:position finished:YES];
     NSMutableDictionary *response = [NSMutableDictionary dictionaryWithDictionary:cameraPosition];
     [response setValue:_id forKey:@"id"];
     if (self.onCameraPositionReceived) {
@@ -340,13 +363,24 @@
     }
 }
 
+-(void) emitVisibleRegionToJS:(NSString*) _id {
+    YMKVisibleRegion* region = self.mapWindow.map.visibleRegion;
+    NSDictionary* visibleRegion = [self regionToJSON:region];
+    NSMutableDictionary *response = [NSMutableDictionary dictionaryWithDictionary:visibleRegion];
+    [response setValue:_id forKey:@"id"];
+    if (self.onVisibleRegionReceived) {
+        self.onVisibleRegionReceived(response);
+    }
+}
 
 - (void)onCameraPositionChangedWithMap:(nonnull YMKMap *)map
     cameraPosition:(nonnull YMKCameraPosition *)cameraPosition
 cameraUpdateSource:(YMKCameraUpdateSource)cameraUpdateSource
                               finished:(BOOL)finished {
+    NSDictionary* position = [self cameraPositionToJSON:cameraPosition finished:finished];
+    NSMutableDictionary *response = [NSMutableDictionary dictionaryWithDictionary:position];
     if (self.onCameraPositionChange) {
-        self.onCameraPositionChange([self cameraPositionToJSON:cameraPosition]);
+        self.onCameraPositionChange(response);
     }
 }
 

@@ -51,5 +51,12 @@ export interface CameraPosition {
   tilt: number;
   azimuth: number;
   point: Point;
-  finished: boolean;
+  isFinished: boolean
+}
+
+export interface VisibleRegion  {
+  topLeft: Point;
+  topRight: Point;
+  bottomLeft: Point;
+  bottomRight: Point;
 }
